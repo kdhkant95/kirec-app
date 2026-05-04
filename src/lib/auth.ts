@@ -5,7 +5,11 @@ import { PrismaAdapter } from "@auth/prisma-adapter"
 import { prisma } from "@/lib/prisma"
 import { DEV_USER_ID } from "@/lib/mock-data"
 
-const hasGoogle = !!(process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET)
+const hasGoogle = !!(
+  process.env.GOOGLE_CLIENT_ID?.includes(".apps.googleusercontent.com") &&
+  process.env.GOOGLE_CLIENT_SECRET &&
+  process.env.GOOGLE_CLIENT_SECRET !== "placeholder"
+)
 const hasDb = !!(process.env.DATABASE_URL && !process.env.DATABASE_URL.includes("[PASSWORD]"))
 
 export const { handlers, auth, signIn, signOut } = NextAuth({
