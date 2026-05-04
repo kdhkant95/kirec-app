@@ -9,12 +9,16 @@ export async function GET() {
 
   if (session.user.id === DEV_USER_ID) return NextResponse.json(mockTeams)
 
-  const memberships = await prisma.membership.findMany({
-    where: { userId: session.user.id },
-    include: { team: true },
-    orderBy: { joinedAt: "desc" },
-  })
-  return NextResponse.json(memberships.map((m) => ({ ...m.team, role: m.role })))
+  try {
+    const memberships = await prisma.membership.findMany({
+      where: { userId: session.user.id },
+      include: { team: true },
+      orderBy: { joinedAt: "desc" },
+    })
+    return NextResponse.json(memberships.map((m) => ({ ...m.team, role: m.role })))
+  } catch {
+    return NextResponse.json({ error: "DB 연결 실패. DATABASE_URL을 확인하세요." }, { status: 500 })
+  }
 }
 
 export async function POST(req: Request) {
@@ -26,12 +30,16 @@ export async function POST(req: Request) {
   const { name, description } = await req.json()
   if (!name?.trim()) return NextResponse.json({ error: "팀 이름을 입력해주세요" }, { status: 400 })
 
-  const team = await prisma.team.create({
-    data: {
-      name: name.trim(),
-      description: description?.trim() || null,
-      memberships: { create: { userId: session.user.id, role: "OWNER" } },
-    },
-  })
-  return NextResponse.json(team, { status: 201 })
+  try {
+    const team = await prisma.team.create({
+      data: {
+        name: name.trim(),
+        description: description?.trim() || null,
+        memberships: { create: { userId: session.user.id, role: "OWNER" } },
+      },
+    })
+    return NextResponse.json(team, { status: 201 })
+  } catch {
+    return NextResponse.json({ error: "DB 연결 실패. DATABASE_URL을 확인하세요." }, { status: 500 })
+  }
 }

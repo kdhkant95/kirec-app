@@ -36,6 +36,7 @@ export default function VideoPage() {
 
   const playerRef = useRef<YTPlayer | null>(null)
   const playerElRef = useRef<HTMLDivElement>(null)
+  const submittingRef = useRef(false)
 
   const [videoInfo, setVideoInfo] = useState<{ title: string; youtubeId: string } | null>(null)
   const [comments, setComments] = useState<Comment[]>([])
@@ -86,7 +87,7 @@ export default function VideoPage() {
   // 현재 재생 시간 추적
   useEffect(() => {
     const interval = setInterval(() => {
-      if (playerRef.current) {
+      if (playerRef.current && typeof playerRef.current.getCurrentTime === "function") {
         setCurrentTime(Math.floor(playerRef.current.getCurrentTime()))
       }
     }, 500)
@@ -98,7 +99,8 @@ export default function VideoPage() {
   }, [])
 
   async function submitComment() {
-    if (!content.trim()) return
+    if (!content.trim() || submittingRef.current) return
+    submittingRef.current = true
     setSubmitting(true)
     const res = await fetch(`/api/teams/${teamId}/videos/${videoId}/comments`, {
       method: "POST",
@@ -110,6 +112,7 @@ export default function VideoPage() {
       setComments((prev) => [...prev, comment].sort((a, b) => a.timestampSec - b.timestampSec))
       setContent("")
     }
+    submittingRef.current = false
     setSubmitting(false)
   }
 

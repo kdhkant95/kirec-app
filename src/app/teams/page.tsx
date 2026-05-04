@@ -35,9 +35,13 @@ export default function TeamsPage() {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ name, description }),
     })
-    const team = await res.json()
-    setTeams((prev) => [{ ...team, role: "OWNER" }, ...prev])
-    setName(""); setDescription(""); setShowCreate(false)
+    const data = await res.json()
+    if (!res.ok) {
+      alert(data.error ?? "팀 생성에 실패했습니다")
+    } else {
+      setTeams((prev) => [{ ...data, role: "OWNER" }, ...prev])
+      setName(""); setDescription(""); setShowCreate(false)
+    }
     setLoading(false)
   }
 
@@ -67,7 +71,7 @@ export default function TeamsPage() {
       {/* 헤더 */}
       <div className="flex items-center justify-between mb-8">
         <h1 className="text-2xl text-white" style={{ letterSpacing: "-0.04em" }}>내 팀</h1>
-        <button onClick={() => signOut({ callbackUrl: "/login" })} className="text-xs" style={{ color: "#767d88" }}>
+        <button onClick={() => signOut({ callbackUrl: "/login" })} className="text-xs px-2 py-1 rounded" style={{ color: "#767d88" }}>
           로그아웃
         </button>
       </div>

@@ -25,3 +25,25 @@ h1, h2, h3 {
   letter-spacing: -0.03em;
   font-weight: 400;
 }
+
+button {
+  cursor: pointer;
+  transition: opacity 150ms ease, background-color 150ms ease, color 150ms ease;
+}
+
+button:hover {
+  opacity: 0.8;
+}
+
+button:active {
+  opacity: 0.55;
+  transform: scale(0.98);
+}
+
+button:disabled,
+button:disabled:hover,
+button:disabled:active {
+  cursor: not-allowed;
+  opacity: 0.4;
+  transform: none;
+}
