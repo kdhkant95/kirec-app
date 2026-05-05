@@ -24,7 +24,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       authorize: () => ({
         id: DEV_USER_ID,
         name: "테스트 사용자",
-        email: "dev@kirec.test",
+        email: "dev@var.test",
         image: null,
       }),
     }),

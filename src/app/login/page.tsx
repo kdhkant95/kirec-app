@@ -13,7 +13,7 @@ function LoginContent() {
       <div className="w-full max-w-sm space-y-8">
         <div className="space-y-2">
           <h1 className="text-3xl text-white" style={{ letterSpacing: "-0.04em" }}>
-            Kirec
+            VAR
           </h1>
           <p className="text-sm" style={{ color: "#767d88" }}>
             축구 경기 영상 회고 서비스

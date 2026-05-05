@@ -6,7 +6,7 @@ import { SessionProvider } from "@/components/session-provider"
 const inter = Inter({ subsets: ["latin"] })
 
 export const metadata: Metadata = {
-  title: "Kirec — 축구 경기 영상 회고",
+  title: "VAR — 축구 경기 영상 회고",
   description: "팀과 함께 경기 영상을 보며 타임스탬프 단위로 회고를 남기세요",
 }
 
