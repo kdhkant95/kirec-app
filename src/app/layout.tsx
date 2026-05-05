@@ -1,9 +1,34 @@
 import type { Metadata } from "next"
-import { Inter } from "next/font/google"
+import localFont from "next/font/local"
 import "./globals.css"
 import { SessionProvider } from "@/components/session-provider"
 
-const inter = Inter({ subsets: ["latin"] })
+const nexonLv1Gothic = localFont({
+  variable: "--font-ui",
+  display: "swap",
+  src: [
+    {
+      path: "./fonts/nexon-lv1-gothic/NEXONLv1GothicLight.woff2",
+      weight: "300",
+      style: "normal",
+    },
+    {
+      path: "./fonts/nexon-lv1-gothic/NEXONLv1GothicRegular.woff2",
+      weight: "400",
+      style: "normal",
+    },
+    {
+      path: "./fonts/nexon-lv1-gothic/NEXONLv1GothicRegular.woff2",
+      weight: "500",
+      style: "normal",
+    },
+    {
+      path: "./fonts/nexon-lv1-gothic/NEXONLv1GothicBold.woff2",
+      weight: "700",
+      style: "normal",
+    },
+  ],
+})
 
 export const metadata: Metadata = {
   title: "VAR — 축구 경기 영상 회고",
@@ -12,8 +37,8 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="ko" className="h-full">
-      <body className={`${inter.className} min-h-full`}>
+    <html lang="ko" className="h-full" style={{ backgroundColor: "#101012" }}>
+      <body className={`${nexonLv1Gothic.variable} min-h-full`}>
         <SessionProvider>{children}</SessionProvider>
       </body>
     </html>
