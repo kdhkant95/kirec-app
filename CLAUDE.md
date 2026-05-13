@@ -1,73 +1,62 @@
 @AGENTS.md
 
-# Kirec — 축구 동호회 경기 영상 회고 서비스
+# VAR Frontend Implementation Guide
 
-## 제품 개요
-축구 동호회가 경기 영상(유튜브)을 보며 특정 타임스탬프에 댓글·회고를 남기는 팀 전용 영상 리뷰 서비스.
+This project is a mobile-first dark-theme football video review web app.
 
-## 기술 스택
-- **Framework**: Next.js 14 (App Router)
-- **Language**: TypeScript
-- **DB**: PostgreSQL (Supabase)
-- **ORM**: Prisma
-- **Auth**: NextAuth v5 (Google OAuth)
-- **Styling**: Tailwind CSS
-- **Deploy**: Vercel
+## Current Stack
+- Framework: Next.js 16.2.4 App Router
+- Runtime UI: React 19.2.4
+- Language: TypeScript
+- Styling: Tailwind CSS 4 plus CSS variables in `src/app/globals.css`
+- Auth: NextAuth v5, Google sign-in only
+- Database: Supabase PostgreSQL with Prisma
+- Font: local NEXON Lv1 Gothic via `next/font/local`
 
-## 프로젝트 구조
-```
-src/
-  app/          # Next.js App Router 페이지 및 API routes
-  lib/
-    auth.ts     # NextAuth 설정
-    prisma.ts   # Prisma 클라이언트 싱글톤
-  components/   # 공용 컴포넌트
-prisma/
-  schema.prisma # DB 스키마
-```
+## Important Next.js Rule
+This is Next.js 16, not older Next.js. Before changing routes, layouts, server/client component boundaries, navigation, or build behavior, read the relevant docs in `node_modules/next/dist/docs/`.
 
-## 데이터 모델
-- **User** — 인증된 사용자
-- **Team** — 동호회 팀 (inviteCode로 초대)
-- **Membership** — User ↔ Team 관계 (OWNER/ADMIN/MEMBER)
-- **Video** — 유튜브 링크 기반 경기 영상
-- **Comment** — timestampSec 기반 타임스탬프 댓글
-- **ShareLink** — 팀 외부 공유용 토큰 링크
+## Design Source Of Truth
+- Figma file: `https://www.figma.com/design/oyr5aYJQliYRER2eBXSG3p/VAR`
+- Foundation page: variables, text styles, effect styles
+- `01 Core Primitives`: reusable UI primitive specs
+- `02 Auth`: auth screen references
+- Local repo foundation summary: `docs/ui-foundation.md`
 
-## 개발 명령어
+Use Figma and `docs/ui-foundation.md` before implementing visual UI. Do not use the older `DESIGN.md` Runway notes as the current product design system.
+
+## Figma MCP Workflow
+Claude Code has a local Figma Desktop MCP server configured for this project:
+
+- MCP server name: `figma-desktop`
+- URL: `http://127.0.0.1:3845/mcp`
+
+When implementing from Figma:
+1. Confirm Figma Desktop is open, the target file is open, and Dev Mode MCP is enabled.
+2. Use Figma MCP design context before coding. Prefer the exact Figma node URL from the user.
+3. Fetch design context and screenshot for the target node.
+4. Map Figma styles to existing repo tokens and primitives instead of inventing new patterns.
+5. If Figma MCP tools are unavailable, stop and tell the user to restart the Claude Code VS Code panel and run `/mcp`.
+
+## UI Implementation Rules
+- Preserve the existing VAR dark theme.
+- Prefer existing primitives in `src/components/ui/primitives`.
+- Extend existing primitives instead of creating duplicate components.
+- Use CSS variables from `src/app/globals.css` for color, spacing, radius, border, and elevation.
+- Use NEXON Lv1 Gothic typography classes from `src/app/globals.css`.
+- Keep icon usage centralized in `src/components/ui/icons/var-icons.tsx`.
+- Do not add unrelated product pages while implementing a Figma component or screen.
+
+## Verification
+Before finishing UI work, run:
+
 ```bash
-npm run dev          # 개발 서버
-npx prisma migrate dev   # DB 마이그레이션
-npx prisma studio        # DB GUI
-npm run build            # 프로덕션 빌드
+./node_modules/.bin/tsc --noEmit
+node ./node_modules/eslint/bin/eslint.js <changed-files>
 ```
 
-## MVP 범위 (Sprint 1)
-1. Google 소셜 로그인
-2. 팀 생성 / 초대코드로 가입
-3. 유튜브 링크 영상 등록
-4. 팀별 영상 목록 조회
-5. 타임스탬프 단위 댓글 작성/조회
-6. 댓글 클릭 → 해당 시점 이동
-7. 공유 링크 생성 (팀 멤버만 열람)
+For larger changes, also run:
 
-## 제약사항
-- MVP 범위 외 기능 추가 금지
-- AI 기능, 영상 직접 업로드, 알림 기능 제외
-- 모바일 웹 우선 설계
-- 확장성보다 빠른 출시 우선
-
-## 환경변수 설정 필요 항목
-`.env` 파일에 아래 값을 채워야 합니다:
-- `DATABASE_URL` — Supabase PostgreSQL 연결 문자열
-- `AUTH_SECRET` — `npx auth secret` 으로 생성
-- `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET` — Google Cloud Console에서 발급
-
-## 디자인 시스템
-- `DESIGN.md` 참고 — Runway 스타일 기반 (다크 cinematic 테마)
-- 모든 UI 작업 전 DESIGN.md 먼저 읽을 것
-- 핵심: 다크 배경 (#000000), 단일 폰트, 그림자 없음, 8px 기본 단위
-
-## 배포
-- Vercel에 GitHub 레포 연결 후 환경변수 등록
-- `vercel.json` 참고
+```bash
+npm run build
+```

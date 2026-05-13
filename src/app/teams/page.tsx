@@ -1,31 +1,98 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useEffect, useRef, useState } from "react"
 import { useRouter } from "next/navigation"
 import { signOut, useSession } from "next-auth/react"
+import { VarWordmark } from "@/components/branding/var-wordmark"
+import { Avatar } from "@/components/ui/primitives/avatar"
+import { Button } from "@/components/ui/primitives/button"
+import { ModalDialog } from "@/components/ui/primitives/modal-dialog"
+import { TextField } from "@/components/ui/primitives/text-field"
 
-type Team = { id: string; name: string; description: string | null; inviteCode: string; role: string }
+function PeopleIcon({ className }: { className?: string }) {
+  return (
+    <svg aria-hidden="true" className={className} viewBox="0 0 80 80" fill="none">
+      <circle cx="30" cy="26" r="11" stroke="var(--kr-color-text-secondary)" strokeWidth="2.5" />
+      <circle cx="54" cy="30" r="9" stroke="var(--kr-color-text-muted)" strokeWidth="2" opacity="0.6" />
+      <path
+        d="M11 60c0-10.5 8.5-16 19-16s19 5.5 19 16"
+        stroke="var(--kr-color-text-secondary)"
+        strokeLinecap="round"
+        strokeWidth="2.5"
+      />
+      <path
+        d="M44.5 57c1-7.5 6.5-10 11-10 4.5 0 9 2.6 11.5 7"
+        stroke="var(--kr-color-text-muted)"
+        strokeLinecap="round"
+        strokeWidth="2"
+        opacity="0.6"
+      />
+    </svg>
+  )
+}
+
+function getInitials(name?: string | null, email?: string | null) {
+  if (name) {
+    const parts = name.trim().split(/\s+/)
+    if (parts.length >= 2) return `${parts[0][0]}${parts[1][0]}`.toUpperCase()
+    return name.trim().slice(0, 2).toUpperCase()
+  }
+  if (email) return email.slice(0, 2).toUpperCase()
+  return "?"
+}
 
 export default function TeamsPage() {
   const { data: session, status } = useSession()
   const router = useRouter()
-  const [teams, setTeams] = useState<Team[]>([])
   const [showCreate, setShowCreate] = useState(false)
   const [showJoin, setShowJoin] = useState(false)
   const [name, setName] = useState("")
   const [description, setDescription] = useState("")
   const [inviteCode, setInviteCode] = useState("")
   const [loading, setLoading] = useState(false)
+  const [ready, setReady] = useState(false)
+  const [showProfile, setShowProfile] = useState(false)
+  const profileRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    if (!showProfile) return
+    function handleClickOutside(e: MouseEvent) {
+      if (profileRef.current && !profileRef.current.contains(e.target as Node)) {
+        setShowProfile(false)
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside)
+    return () => document.removeEventListener("mousedown", handleClickOutside)
+  }, [showProfile])
 
   useEffect(() => {
     if (status === "unauthenticated") router.replace("/login")
   }, [status, router])
 
   useEffect(() => {
-    if (status === "authenticated") {
-      fetch("/api/teams").then((r) => r.json()).then(setTeams)
-    }
-  }, [status])
+    if (status !== "authenticated") return
+    fetch("/api/teams")
+      .then((r) => r.json())
+      .then((data) => {
+        if (Array.isArray(data) && data.length > 0) {
+          router.replace(`/teams/${data[0].id}`)
+        } else {
+          setReady(true)
+        }
+      })
+      .catch(() => setReady(true))
+  }, [status, router])
+
+  function resetCreate() {
+    setName("")
+    setDescription("")
+    setShowCreate(false)
+  }
+
+  function resetJoin() {
+    setInviteCode("")
+    setShowJoin(false)
+  }
 
   async function createTeam() {
     if (!name.trim()) return
@@ -36,13 +103,12 @@ export default function TeamsPage() {
       body: JSON.stringify({ name, description }),
     })
     const data = await res.json()
+    setLoading(false)
     if (!res.ok) {
       alert(data.error ?? "팀 생성에 실패했습니다")
-    } else {
-      setTeams((prev) => [{ ...data, role: "OWNER" }, ...prev])
-      setName(""); setDescription(""); setShowCreate(false)
+      return
     }
-    setLoading(false)
+    router.replace(`/teams/${data.id}`)
   }
 
   async function joinTeam() {
@@ -53,117 +119,126 @@ export default function TeamsPage() {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ inviteCode }),
     })
-    if (res.ok) {
-      const team = await res.json()
-      setTeams((prev) => [{ ...team, role: "MEMBER" }, ...prev])
-      setInviteCode(""); setShowJoin(false)
-    } else {
-      const { error } = await res.json()
-      alert(error)
-    }
+    const data = await res.json()
     setLoading(false)
+    if (!res.ok) {
+      alert(data.error ?? "팀 합류에 실패했습니다")
+      return
+    }
+    router.replace(`/teams/${data.id}`)
   }
 
-  if (status === "loading") return <div className="min-h-dvh flex items-center justify-center" style={{ color: "#767d88" }}>로딩 중...</div>
+  if (status === "loading" || !ready) return null
+
+  const userInitials = getInitials(session?.user?.name, session?.user?.email)
 
   return (
-    <div className="min-h-dvh px-4 py-8 max-w-lg mx-auto">
-      {/* 헤더 */}
-      <div className="flex items-center justify-between mb-8">
-        <h1 className="text-2xl text-white" style={{ letterSpacing: "-0.04em" }}>내 팀</h1>
-        <button onClick={() => signOut({ callbackUrl: "/login" })} className="text-xs px-2 py-1 rounded" style={{ color: "#767d88" }}>
-          로그아웃
-        </button>
-      </div>
-
-      {/* 팀 목록 */}
-      <div className="space-y-2 mb-6">
-        {teams.length === 0 && (
-          <p className="text-sm py-8 text-center" style={{ color: "#767d88" }}>팀이 없습니다. 팀을 만들거나 초대코드로 가입하세요.</p>
-        )}
-        {teams.map((team) => (
+    <main className="flex min-h-dvh flex-col bg-[var(--kr-color-bg-canvas)]">
+      {/* Header */}
+      <header className="flex h-[72px] shrink-0 items-center justify-between border-b border-[var(--kr-color-border-subtle)] px-[20px]">
+        <VarWordmark />
+        <div ref={profileRef} className="relative">
           <button
-            key={team.id}
-            onClick={() => router.push(`/teams/${team.id}`)}
-            className="w-full text-left p-4 rounded-lg transition-colors"
-            style={{ background: "#1a1a1a", border: "1px solid #27272a" }}
+            aria-label="프로필 메뉴"
+            onClick={() => setShowProfile((v) => !v)}
+            type="button"
           >
-            <div className="flex items-center justify-between">
-              <span className="text-sm font-medium text-white">{team.name}</span>
-              <span className="text-xs uppercase tracking-wider" style={{ color: "#767d88", letterSpacing: "0.05em" }}>
-                {team.role}
-              </span>
+            <Avatar content="initials" initials={userInitials} size="m" />
+          </button>
+
+          <div
+            className={`absolute right-0 top-full z-50 mt-[6px] flex w-[160px] origin-top-right flex-col overflow-hidden rounded-[16px] border border-[var(--kr-color-border-subtle)] bg-[var(--kr-color-bg-floating)] p-[6px] shadow-[var(--kr-shadow-overlay)] transition-[opacity,transform] duration-150 ease-out ${showProfile ? "opacity-100 scale-100 pointer-events-auto" : "opacity-0 scale-95 pointer-events-none"}`}
+          >
+            <div className="px-[14px] py-[8px]">
+              <p className="type-label-s truncate text-[var(--kr-color-text-muted)]">
+                {session?.user?.email ?? session?.user?.name ?? ""}
+              </p>
             </div>
-            {team.description && (
-              <p className="text-xs mt-1" style={{ color: "#767d88" }}>{team.description}</p>
-            )}
-          </button>
-        ))}
+            <div className="mx-[4px] mb-[4px] h-px bg-[var(--kr-color-border-subtle)]" />
+            <button
+              className="flex items-center gap-[8px] rounded-[10px] px-[14px] py-[10px] text-left text-[var(--kr-color-state-danger)] transition-colors duration-150 hover:bg-[var(--kr-color-bg-selected)]"
+              onClick={() => signOut({ callbackUrl: "/login" })}
+              type="button"
+            >
+              <span className="type-body-m">로그아웃</span>
+            </button>
+          </div>
+        </div>
+      </header>
+
+      {/* Empty state */}
+      <div className="flex flex-1 flex-col items-center justify-center px-[20px]">
+        <div className="flex w-full max-w-[340px] flex-col items-center gap-[40px]">
+          <PeopleIcon className="size-20" />
+
+          <div className="flex flex-col items-center gap-[16px] text-center">
+            <h1 className="type-heading-l text-[var(--kr-color-text-primary)]">
+              먼저 팀에 합류해볼까요?
+            </h1>
+            <p
+              className="text-[var(--kr-color-text-secondary)]"
+              style={{ fontSize: 18, lineHeight: "26px", whiteSpace: "pre-line" }}
+            >
+              {"기존 팀에 초대코드로 들어가거나,\n새 팀을 만들 수 있어요."}
+            </p>
+          </div>
+
+          <div className="flex w-full flex-col gap-[12px]">
+            <Button className="w-full" size="l" tone="primary" onClick={() => setShowCreate(true)}>
+              새 팀 만들기
+            </Button>
+            <Button className="w-full" size="l" tone="secondary" onClick={() => setShowJoin(true)}>
+              초대 코드로 팀 합류
+            </Button>
+          </div>
+        </div>
       </div>
 
-      {/* 액션 버튼 */}
-      <div className="flex gap-2">
-        <button
-          onClick={() => { setShowCreate(true); setShowJoin(false) }}
-          className="flex-1 py-2.5 rounded-lg text-sm font-medium text-white"
-          style={{ background: "#1a1a1a", border: "1px solid #27272a" }}
-        >
-          팀 만들기
-        </button>
-        <button
-          onClick={() => { setShowJoin(true); setShowCreate(false) }}
-          className="flex-1 py-2.5 rounded-lg text-sm"
-          style={{ color: "#767d88", border: "1px solid #27272a" }}
-        >
-          초대코드로 가입
-        </button>
-      </div>
+      {/* Create team modal */}
+      <ModalDialog
+        dismissible
+        onClose={resetCreate}
+        onPrimaryAction={createTeam}
+        onSecondaryAction={resetCreate}
+        open={showCreate}
+        primaryActionLabel={loading ? "생성 중..." : "만들기"}
+        secondaryActionLabel="취소"
+        title="새 팀 만들기"
+        variant="form"
+      >
+        <TextField
+          label="팀 이름"
+          onChange={(e) => setName(e.target.value)}
+          placeholder="팀 이름을 입력하세요"
+          value={name}
+        />
+        <TextField
+          label="설명 (선택)"
+          onChange={(e) => setDescription(e.target.value)}
+          placeholder="팀 설명을 입력하세요"
+          value={description}
+        />
+      </ModalDialog>
 
-      {/* 팀 만들기 폼 */}
-      {showCreate && (
-        <div className="mt-4 p-4 rounded-lg space-y-3" style={{ background: "#1a1a1a", border: "1px solid #27272a" }}>
-          <p className="text-sm font-medium text-white">새 팀 만들기</p>
-          <input
-            value={name} onChange={(e) => setName(e.target.value)}
-            placeholder="팀 이름"
-            className="w-full px-3 py-2 rounded-lg text-sm text-white outline-none"
-            style={{ background: "#000", border: "1px solid #27272a" }}
-          />
-          <input
-            value={description} onChange={(e) => setDescription(e.target.value)}
-            placeholder="설명 (선택)"
-            className="w-full px-3 py-2 rounded-lg text-sm text-white outline-none"
-            style={{ background: "#000", border: "1px solid #27272a" }}
-          />
-          <button
-            onClick={createTeam} disabled={loading || !name.trim()}
-            className="w-full py-2.5 rounded-lg text-sm font-medium text-white disabled:opacity-40"
-            style={{ background: "#fff", color: "#000" }}
-          >
-            {loading ? "생성 중..." : "만들기"}
-          </button>
-        </div>
-      )}
-
-      {/* 초대코드 가입 폼 */}
-      {showJoin && (
-        <div className="mt-4 p-4 rounded-lg space-y-3" style={{ background: "#1a1a1a", border: "1px solid #27272a" }}>
-          <p className="text-sm font-medium text-white">초대코드로 가입</p>
-          <input
-            value={inviteCode} onChange={(e) => setInviteCode(e.target.value)}
-            placeholder="초대코드 입력"
-            className="w-full px-3 py-2 rounded-lg text-sm text-white outline-none"
-            style={{ background: "#000", border: "1px solid #27272a" }}
-          />
-          <button
-            onClick={joinTeam} disabled={loading || !inviteCode.trim()}
-            className="w-full py-2.5 rounded-lg text-sm font-medium disabled:opacity-40"
-            style={{ background: "#fff", color: "#000" }}
-          >
-            {loading ? "가입 중..." : "가입하기"}
-          </button>
-        </div>
-      )}
-    </div>
+      {/* Join team modal */}
+      <ModalDialog
+        dismissible
+        onClose={resetJoin}
+        onPrimaryAction={joinTeam}
+        onSecondaryAction={resetJoin}
+        open={showJoin}
+        primaryActionLabel={loading ? "가입 중..." : "가입하기"}
+        secondaryActionLabel="취소"
+        title="초대 코드로 팀 합류"
+        variant="form"
+      >
+        <TextField
+          label="초대 코드"
+          onChange={(e) => setInviteCode(e.target.value)}
+          placeholder="초대 코드를 입력하세요"
+          value={inviteCode}
+        />
+      </ModalDialog>
+    </main>
   )
 }

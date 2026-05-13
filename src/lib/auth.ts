@@ -16,7 +16,18 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
   ...(hasGoogle && hasDb ? { adapter: PrismaAdapter(prisma) } : {}),
   providers: [
     ...(hasGoogle
-      ? [Google({ clientId: process.env.GOOGLE_CLIENT_ID!, clientSecret: process.env.GOOGLE_CLIENT_SECRET! })]
+      ? [
+          Google({
+            clientId: process.env.GOOGLE_CLIENT_ID!,
+            clientSecret: process.env.GOOGLE_CLIENT_SECRET!,
+            authorization: {
+              params: {
+                prompt: "select_account",
+                access_type: "online",
+              },
+            },
+          }),
+        ]
       : []),
     Credentials({
       id: "dev",

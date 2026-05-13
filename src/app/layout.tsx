@@ -1,5 +1,6 @@
 import type { Metadata } from "next"
 import localFont from "next/font/local"
+import Script from "next/script"
 import "./globals.css"
 import { SessionProvider } from "@/components/session-provider"
 
@@ -40,6 +41,13 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     <html lang="ko" className="h-full" style={{ backgroundColor: "#101012" }}>
       <body className={`${nexonLv1Gothic.variable} min-h-full`}>
         <SessionProvider>{children}</SessionProvider>
+        {process.env.NODE_ENV === "development" ? (
+          <Script
+            id="figma-html-to-design-capture"
+            src="https://mcp.figma.com/mcp/html-to-design/capture.js"
+            strategy="afterInteractive"
+          />
+        ) : null}
       </body>
     </html>
   )
